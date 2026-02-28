@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Love Letter</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream: #f5ede0; --parchment: #e8d9c0; --ink: #2c1810;
+    --gold: #c9a84c; --rose: #8b2635; --rose-light: #c4485a;
+    --card-w: 145px; --card-h: 228px;
+  }
+  body {
+    background: #1a0f08; color: var(--cream);
+    font-family: 'Cormorant Garamond', serif; min-height: 100vh; overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(139,38,53,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(201,168,76,0.1) 0%, transparent 50%),
+      repeating-linear-gradient(45deg, transparent 0, transparent 40px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.01) 41px);
+  }
+
+  .screen { display:none; min-height:100vh; }
+  .screen.active { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+
+  /* ── TITLE ── */
+  #s-title { gap:1.8rem; padding:2rem; text-align:center; }
+  .title-main { font-family:'Cinzel',serif; font-size:clamp(3rem,8vw,6rem); color:var(--gold); text-shadow:0 0 60px rgba(201,168,76,.4); letter-spacing:.1em; }
+  .title-sub { font-size:1.1rem; font-style:italic; color:var(--parchment); opacity:.7; letter-spacing:.3em; }
+  .title-desc { max-width:420px; font-size:1rem; color:var(--parchment); opacity:.75; line-height:1.7; font-style:italic; }
+  .divider { width:200px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+
+  /* ── BUTTONS ── */
+  .btn { font-family:'Cinzel',serif; font-size:.85rem; letter-spacing:.15em; padding:.75rem 2rem;
+    border:1px solid var(--gold); background:transparent; color:var(--gold); cursor:pointer;
+    transition:all .3s; position:relative; overflow:hidden; }
+  .btn::before { content:''; position:absolute; inset:0; background:var(--gold); transform:translateX(-100%); transition:transform .3s; z-index:-1; }
+  .btn:hover { color:var(--ink); } .btn:hover::before { transform:translateX(0); }
+  .btn-rose { border-color:var(--rose-light); color:var(--rose-light); }
+  .btn-rose::before { background:var(--rose-light); } .btn-rose:hover { color:var(--cream); }
+  .btn-sm { font-size:.7rem; padding:.45rem 1.1rem; }
+  .btn-group { display:flex; gap:.75rem; flex-wrap:wrap; justify-content:center; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; } .btn:disabled::before { display:none; }
+
+  input[type=text] { background:rgba(255,255,255,.05); border:1px solid rgba(201,168,76,.3);
+    color:var(--cream); padding:.6rem 1rem; font-family:'Cormorant Garamond',serif; font-size:1rem;
+    outline:none; transition:border-color .2s; width:100%; }
+  input[type=text]:focus { border-color:var(--gold); }
+  input[type=text]::placeholder { color:rgba(245,237,224,.3); }
+
+  /* ── LOBBY ── */
+  #s-lobby { gap:1.5rem; padding:2rem; text-align:center; }
+  .lobby-code { font-family:'Cinzel',serif; font-size:3rem; color:var(--gold); letter-spacing:.4em; text-shadow:0 0 30px rgba(201,168,76,.4); }
+  .lobby-hint { font-size:.85rem; font-style:italic; color:var(--parchment); opacity:.55; }
+  .player-chips { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; min-height:2rem; }
+  .chip { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.1em; padding:.3rem .9rem; border:1px solid rgba(201,168,76,.4); color:var(--gold); opacity:.8; }
+  .chip.me { border-color:var(--gold); opacity:1; }
+
+  /* ── GAME ── */
+  #s-game { justify-content:flex-start; padding:0; height:100vh; overflow:hidden; }
+  .game-header {
+    width:100%; padding:.6rem 1rem;
+    display:grid; grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    border-bottom:1px solid rgba(201,168,76,.15);
+    background:rgba(0,0,0,.4); flex-shrink:0; gap:.5rem;
+  }
+  .header-left { display:flex; align-items:center; gap:.75rem; }
+  .header-center { text-align:center; }
+  .header-right { display:flex; align-items:center; justify-content:flex-end; }
+  .game-logo { font-family:'Cinzel',serif; font-size:.9rem; color:var(--gold); opacity:.7; }
+  .round-badge { font-family:'Cinzel',serif; font-size:1rem; color:var(--gold); letter-spacing:.12em; }
+  .token-strip { display:flex; gap:.6rem; flex-wrap:wrap; font-size:.8rem; justify-content:flex-end; }
+  .token-item { color:var(--gold); opacity:.7; }
+  .token-item.me { opacity:1; font-weight:600; }
+  .home-btn {
+    font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.12em;
+    padding:.3rem .75rem; border:1px solid rgba(201,168,76,.25); background:transparent;
+    color:var(--gold); opacity:.55; cursor:pointer; transition:all .2s; white-space:nowrap;
+  }
+  .home-btn:hover { opacity:1; border-color:var(--rose-light); color:var(--rose-light); }
+
+  .game-body { flex:1; width:100%; display:flex; flex-direction:column;
+    padding:.75rem 1rem; gap:.75rem; max-width:1100px; margin:0 auto;
+    height:0; min-height:0; overflow:hidden; }
+
+  /* Opponents */
+  .opponents-area { display:flex; justify-content:center; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; flex-shrink:0; }
+  .player-zone { display:flex; flex-direction:column; align-items:center; gap:.4rem; }
+  .name-tag { font-family:'Cinzel',serif; font-size:.75rem; letter-spacing:.08em;
+    padding:.3rem .9rem; border:1px solid rgba(201,168,76,.25); color:var(--gold);
+    opacity:.65; text-align:center; white-space:nowrap; }
+  .name-tag.active { border-color:var(--gold); opacity:1; box-shadow:0 0 12px rgba(201,168,76,.3); animation:pulse 2s infinite; }
+  .name-tag.elim { opacity:.25; text-decoration:line-through; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 8px rgba(201,168,76,.3);} 50%{box-shadow:0 0 20px rgba(201,168,76,.6);} }
+  .prot-tag { font-size:.65rem; color:var(--parchment); opacity:.4; font-style:italic; }
+  .token-pips { font-size:.8rem; color:var(--rose-light); }
+
+  /* ── CARDS ── */
+  .card { width:var(--card-w); height:var(--card-h); border:1px solid rgba(201,168,76,.4); border-radius:4px;
+    cursor:pointer; position:relative; transition:transform .2s, box-shadow .2s; user-select:none; overflow:hidden; flex-shrink:0; }
+  .card.no-click { cursor:default; }
+  .card:hover:not(.no-click):not(.disabled) { transform:translateY(-10px); box-shadow:0 14px 36px rgba(0,0,0,.6); }
+  .card.selected { transform:translateY(-16px); box-shadow:0 0 0 2px var(--gold),0 18px 44px rgba(201,168,76,.3); }
+  .card.disabled { opacity:.4; cursor:not-allowed; }
+  .card.face-down {
+    background:linear-gradient(135deg,#2a1a10,#3d2510,#2a1a10);
+    background-image:repeating-linear-gradient(45deg,rgba(201,168,76,.04) 0,rgba(201,168,76,.04) 1px,transparent 1px,transparent 8px),
+      repeating-linear-gradient(-45deg,rgba(201,168,76,.04) 0,rgba(201,168,76,.04) 1px,transparent 1px,transparent 8px); }
+  .card.face-down::after { content:'✦'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2.2rem; color:rgba(201,168,76,.18); }
+  .card-face { width:100%; height:100%; display:flex; flex-direction:column; align-items:center;
+    justify-content:space-between; padding:10px 8px; background:var(--cream); color:var(--ink); }
+  .cn { font-family:'Cinzel',serif; font-size:2.2rem; font-weight:600; color:var(--rose); line-height:1; }
+  .cs { font-size:2.4rem; line-height:1; }
+  .ct { font-family:'Cinzel',serif; font-size:.78rem; letter-spacing:.08em; text-align:center; }
+  .cd { font-size:.6rem; text-align:center; color:#4a3028; line-height:1.45; padding:0 4px; }
+
+  /* ── CARD ZOOM ── */
+  #card-zoom { position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:500;
+    display:none; align-items:center; justify-content:center; backdrop-filter:blur(6px); cursor:pointer; }
+  #card-zoom.show { display:flex; }
+  #card-zoom .zoom-inner { display:flex; flex-direction:column; align-items:center; gap:1.25rem;
+    animation:zoomIn .2s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes zoomIn { from{opacity:0;transform:scale(.7);} to{opacity:1;transform:scale(1);} }
+  .big-card { width:200px; height:314px; border:2px solid rgba(201,168,76,.6); border-radius:6px; overflow:hidden;
+    box-shadow:0 0 0 1px rgba(201,168,76,.2),0 24px 80px rgba(0,0,0,.8),0 0 60px rgba(201,168,76,.15); }
+  .big-card .card-face { padding:14px 12px; }
+  .big-card .cn { font-size:3rem; }
+  .big-card .cs { font-size:3.2rem; }
+  .big-card .ct { font-size:1rem; letter-spacing:.12em; }
+  .big-card .cd { font-size:.82rem; line-height:1.55; padding:0 4px; }
+  .zoom-hint { font-size:.72rem; font-style:italic; color:var(--parchment); opacity:.35; }
+  .zoom-actions { display:flex; gap:.75rem; flex-wrap:wrap; justify-content:center; }
+
+  /* ── CHANCELLOR OVERLAY ── */
+  #chancellor-overlay { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:600;
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    gap:1.5rem; backdrop-filter:blur(8px); padding:1rem; }
+  #chancellor-overlay.show { display:flex; }
+  .chancellor-title { font-family:'Cinzel',serif; font-size:1.4rem; color:var(--gold); text-align:center; }
+  .chancellor-sub { font-style:italic; color:var(--parchment); opacity:.6; font-size:.9rem; text-align:center; }
+  .chancellor-cards { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
+  .chancellor-cards .card { cursor:pointer; }
+  .chancellor-cards .card:hover { transform:translateY(-10px); box-shadow:0 0 0 2px var(--gold),0 16px 40px rgba(201,168,76,.4); }
+
+  /* ── MIDDLE ── */
+  .middle-area { display:flex; align-items:center; justify-content:center; gap:2rem; flex-shrink:0; flex-wrap:wrap; }
+  .deck-area, .discard-area { display:flex; flex-direction:column; align-items:center; gap:.4rem; }
+  .area-label { font-size:.85rem; color:var(--parchment); opacity:.6; font-family:'Cinzel',serif; letter-spacing:.1em; }
+  .game-log { overflow-y:auto; background:rgba(0,0,0,.35); border:1px solid rgba(201,168,76,.12);
+    padding:.65rem 1rem; font-size:.95rem; color:var(--parchment); opacity:.85; font-style:italic; line-height:1.7;
+    flex:1; min-width:240px; max-width:420px; height:150px;
+    scrollbar-width:thin; scrollbar-color:rgba(201,168,76,.15) transparent; }
+
+  /* ── PLAYER AREA ── */
+  .player-area { display:flex; flex-direction:column; align-items:center; gap:.6rem; flex-shrink:0; position:relative; }
+  .hand-row { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+  .status-bar { font-family:'Cinzel',serif; font-size:.92rem; letter-spacing:.1em; color:var(--gold); text-align:center; min-height:1.2em; }
+
+  /* ── ACTION PANEL — fixed bottom overlay, never pushes layout ── */
+  .action-panel {
+    position:fixed; bottom:0; left:0; right:0;
+    background:rgba(18,10,5,.97); border-top:1px solid rgba(201,168,76,.25);
+    padding:.65rem 1.25rem .8rem;
+    display:flex; flex-direction:column; align-items:center; gap:.5rem;
+    z-index:50;
+    box-shadow:0 -8px 32px rgba(0,0,0,.6);
+  }
+  .ap-title { font-family:'Cinzel',serif; font-size:.75rem; letter-spacing:.15em; color:var(--gold); opacity:.7; }
+  .ap-row { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
+  .tgt-btn { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.08em; padding:.4rem 1rem;
+    border:1px solid rgba(201,168,76,.3); background:transparent; color:var(--parchment); cursor:pointer; transition:all .2s; }
+  .tgt-btn:hover, .tgt-btn.sel { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,.1); }
+  .guess-btn { font-family:'Cinzel',serif; font-size:.62rem; padding:.25rem .6rem;
+    border:1px solid rgba(139,38,53,.35); background:transparent; color:var(--rose-light); cursor:pointer; transition:all .2s; }
+  .guess-btn:hover, .guess-btn.sel { background:rgba(139,38,53,.18); border-color:var(--rose-light); }
+
+  /* pad the bottom of the game body when action panel is visible so cards aren't hidden behind it */
+  .game-body.has-action { padding-bottom:160px; }
+
+  /* ── OVERLAYS ── */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.88); display:none; align-items:center; justify-content:center; z-index:100; backdrop-filter:blur(4px); }
+  .overlay.show { display:flex; }
+  .ov-card { text-align:center; padding:2.5rem 3rem; border:1px solid rgba(201,168,76,.3); background:rgba(26,15,8,.97);
+    max-width:480px; width:90%; animation:fadeUp .4s ease; max-height:90vh; overflow-y:auto; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:translateY(0);} }
+  .ov-title { font-family:'Cinzel',serif; font-size:1.8rem; color:var(--gold); margin-bottom:.4rem; }
+  .ov-sub { font-style:italic; color:var(--parchment); opacity:.65; margin-bottom:1.25rem; line-height:1.6; font-size:.9rem; }
+  .score-row { display:flex; justify-content:space-between; padding:.35rem 0; border-bottom:1px solid rgba(201,168,76,.1); font-size:.95rem; }
+  .score-row.win { color:var(--gold); }
+  .scores { margin-bottom:1.25rem; }
+
+  /* Rules */
+  .rules-section { margin-bottom:1.2rem; }
+  .rules-section h3 { font-family:'Cinzel',serif; font-size:.9rem; color:var(--gold); margin-bottom:.5rem; letter-spacing:.1em; }
+  .card-rule { display:flex; gap:.75rem; padding:.5rem 0; border-bottom:1px solid rgba(201,168,76,.08); align-items:flex-start; }
+  .card-rule-num { font-family:'Cinzel',serif; font-size:1.1rem; color:var(--rose); min-width:1.5rem; text-align:center; font-weight:600; }
+  .card-rule-body { flex:1; font-size:.82rem; line-height:1.6; color:var(--parchment); opacity:.85; }
+  .card-rule-name { font-family:'Cinzel',serif; font-size:.75rem; color:var(--gold); display:block; margin-bottom:.15rem; }
+  .card-rule-count { font-size:.68rem; opacity:.45; margin-left:.4rem; }
+  .tokens-table { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+  .tokens-table th { font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.1em; color:var(--gold); opacity:.6; padding:.3rem .5rem; text-align:left; border-bottom:1px solid rgba(201,168,76,.2); }
+  .tokens-table td { padding:.3rem .5rem; border-bottom:1px solid rgba(201,168,76,.07); color:var(--parchment); opacity:.8; }
+
+  /* Toast */
+  .toast { position:fixed; top:1rem; left:50%; transform:translateX(-50%); background:rgba(26,15,8,.97);
+    border:1px solid rgba(201,168,76,.3); padding:.6rem 1.4rem; font-size:.8rem; font-style:italic;
+    color:var(--parchment); z-index:700; opacity:0; transition:opacity .3s; pointer-events:none;
+    text-align:center; white-space:nowrap; max-width:90vw; }
+  .toast.show { opacity:1; }
+
+  /* Conn dot */
+  .conn-dot { width:6px; height:6px; border-radius:50%; background:#888; display:inline-block; margin-right:5px; }
+  .conn-dot.ok { background:#5c9; } .conn-dot.err { background:var(--rose-light); }
+
+  #s-waiting { gap:1.5rem; text-align:center; padding:2rem; }
+  .wait-msg { font-size:1.1rem; font-style:italic; color:var(--parchment); opacity:.65; }
+  .spinner { width:32px; height:32px; border:2px solid rgba(201,168,76,.2); border-top-color:var(--gold);
+    border-radius:50%; animation:spin 1s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="s-title" class="screen active">
+  <div style="color:var(--gold);opacity:.5;font-size:1.8rem;letter-spacing:1rem">— ✦ —</div>
+  <div class="title-main">Love Letter</div>
+  <div class="title-sub">2019 edition · 2–6 players</div>
+  <div class="divider"></div>
+  <div class="title-desc">Deliver your letter to the Princess through her court. Be the last suitor standing — or hold the highest card when the deck runs dry.</div>
+  <div style="display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:320px">
+    <input type="text" id="inp-name" placeholder="Your name" maxlength="16">
+    <div class="btn-group">
+      <button class="btn" onclick="createRoom()">Create Room</button>
+      <button class="btn btn-rose" onclick="showJoin()">Join Room</button>
+    </div>
+    <div id="join-row" style="display:none;flex-direction:column;gap:.5rem">
+      <input type="text" id="inp-code" placeholder="Room code" maxlength="4"
+        style="text-transform:uppercase;text-align:center;letter-spacing:.3em;font-size:1.2rem">
+      <button class="btn btn-sm" onclick="joinRoom()">Enter</button>
+    </div>
+  </div>
+  <button class="btn btn-sm" onclick="showRules()">Rules &amp; Cards</button>
+  <div style="font-size:.7rem;opacity:.3;font-style:italic;">
+    <span class="conn-dot" id="conn-dot"></span><span id="conn-label">connecting…</span>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="s-lobby" class="screen">
+  <div style="font-family:'Cinzel',serif;font-size:1.4rem;color:var(--gold);opacity:.8">Room Code</div>
+  <div class="lobby-code" id="lobby-code">—</div>
+  <div class="lobby-hint">Share this code with friends · 2–6 players</div>
+  <div class="divider"></div>
+  <div style="font-family:'Cinzel',serif;font-size:.7rem;color:var(--gold);opacity:.5;letter-spacing:.15em">PLAYERS</div>
+  <div class="player-chips" id="lobby-chips"></div>
+  <div id="lobby-start-area"></div>
+  <div class="lobby-hint" id="lobby-wait-msg"></div>
+</div>
+
+<!-- WAITING -->
+<div id="s-waiting" class="screen">
+  <div class="spinner"></div>
+  <div class="wait-msg" id="wait-msg">Waiting…</div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div class="game-header">
+    <div class="header-left">
+      <div class="game-logo">Love Letter</div>
+    </div>
+    <div class="header-center">
+      <div class="round-badge" id="g-round">Round 1</div>
+    </div>
+    <div class="header-right">
+      <div class="token-strip" id="g-tokens"></div>
+      <button class="home-btn" onclick="confirmLeave()" style="margin-left:.75rem">⬡ Leave</button>
+    </div>
+  </div>
+  <div class="game-body">
+    <div class="opponents-area" id="g-opponents"></div>
+    <div class="middle-area">
+      <div class="deck-area">
+        <div class="area-label">Deck</div>
+        <div class="card face-down no-click" style="width:60px;height:94px"></div>
+        <div class="area-label" id="g-deck-count">—</div>
+      </div>
+      <div class="game-log" id="g-log"></div>
+      <div class="discard-area">
+        <div class="area-label">Last Discard</div>
+        <div id="g-discard" style="min-height:var(--card-h);min-width:var(--card-w)"></div>
+      </div>
+    </div>
+    <div class="player-area">
+      <div class="status-bar" id="g-status">—</div>
+      <div class="hand-row" id="g-hand"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION PANEL — fixed to bottom, outside game body flow -->
+<div class="action-panel" id="g-action" style="display:none"></div>
+
+<!-- ROUND OVER -->
+<div class="overlay" id="ov-round">
+  <div class="ov-card">
+    <div class="ov-title" id="ov-round-title">Round Over</div>
+    <div class="ov-sub" id="ov-round-sub"></div>
+    <div class="scores" id="ov-round-scores"></div>
+    <div id="ov-round-btn"></div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay" id="ov-game">
+  <div class="ov-card">
+    <div class="ov-title" id="ov-game-title">Victory!</div>
+    <div class="ov-sub" id="ov-game-sub"></div>
+    <div class="scores" id="ov-game-scores"></div>
+    <button class="btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<!-- LEAVE CONFIRM -->
+<div class="overlay" id="ov-leave">
+  <div class="ov-card" style="max-width:360px">
+    <div class="ov-title" style="font-size:1.4rem">Leave the game?</div>
+    <div class="ov-sub">You'll be disconnected from the room and your friends will be notified.</div>
+    <div class="btn-group">
+      <button class="btn btn-rose btn-sm" onclick="doLeave()">Leave</button>
+      <button class="btn btn-sm" onclick="document.getElementById('ov-leave').classList.remove('show')">Stay</button>
+    </div>
+  </div>
+</div>
+
+<!-- RULES -->
+<div class="overlay" id="ov-rules">
+  <div class="ov-card" style="max-width:560px;text-align:left;padding:2rem 2.5rem">
+    <div class="ov-title" style="text-align:center;margin-bottom:.25rem">Love Letter</div>
+    <div style="text-align:center;font-style:italic;color:var(--parchment);opacity:.5;margin-bottom:1.25rem;font-size:.85rem">2019 Edition · 2–6 Players · 21 Cards</div>
+    <div id="rules-body" style="max-height:60vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent;padding-right:.5rem"></div>
+    <div style="margin-top:1.25rem;text-align:center">
+      <button class="btn btn-sm" onclick="document.getElementById('ov-rules').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD ZOOM -->
+<div id="card-zoom" onclick="closeZoom()">
+  <div class="zoom-inner" onclick="event.stopPropagation()">
+    <div class="big-card" id="zoom-card-content"></div>
+    <div class="zoom-actions" id="zoom-actions"></div>
+    <div class="zoom-hint">click outside to dismiss</div>
+  </div>
+</div>
+
+<!-- CHANCELLOR OVERLAY -->
+<div id="chancellor-overlay">
+  <div class="chancellor-title">📋 Chancellor's Choice</div>
+  <div class="chancellor-sub">You drew these cards. Click one to keep it — the others return to the deck.</div>
+  <div class="chancellor-cards" id="chancellor-cards"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PEEK OVERLAY -->
+<div class="overlay" id="ov-peek" style="z-index:600">
+  <div class="ov-card" style="max-width:340px">
+    <div style="font-size:.75rem;font-family:'Cinzel',serif;letter-spacing:.2em;color:var(--gold);opacity:.6;margin-bottom:.5rem">📜 PRIEST REVEALS</div>
+    <div class="ov-title" id="peek-player-name" style="font-size:1.4rem;margin-bottom:1.25rem"></div>
+    <div style="display:flex;justify-content:center;margin-bottom:1.25rem">
+      <div class="big-card" id="peek-card-display"></div>
+    </div>
+    <div style="font-size:.85rem;font-style:italic;color:var(--parchment);opacity:.5;margin-bottom:1.25rem">Only you can see this</div>
+    <button class="btn btn-sm" onclick="document.getElementById('ov-peek').classList.remove('show')">Understood</button>
+  </div>
+</div>
+
+<script>
+// ── CARD DATA (2019 Edition) ──
+const CARDS = {
+  0: { name:'Spy',       sym:'🕵️', count:2, desc:'If you are the only player who played or discarded a Spy this round and you are still in the round at the end, gain 1 token of affection.' },
+  1: { name:'Guard',     sym:'⚔️', count:6, desc:'Name a non-Guard card and choose another player. If that player holds the named card, they are eliminated.' },
+  2: { name:'Priest',    sym:'📜', count:2, desc:'Look at another player\'s hand.' },
+  3: { name:'Baron',     sym:'🗡️', count:2, desc:'Secretly compare hands with another player. The player with the lower card is eliminated. Ties have no effect.' },
+  4: { name:'Handmaid',  sym:'🌸', count:2, desc:'Until the start of your next turn, you cannot be chosen by other players\' card effects.' },
+  5: { name:'Prince',    sym:'👑', count:2, desc:'Choose any player (including yourself). That player discards their hand (without effect) and draws a new card. If the Princess is discarded this way, that player is eliminated.' },
+  6: { name:'Chancellor',sym:'📋', count:2, desc:'Draw 2 cards from the deck. Keep 1 card, and place the other 2 on the bottom of the deck in any order. If fewer than 2 cards remain, draw what is available.' },
+  7: { name:'King',      sym:'♔', count:1, desc:'Trade hands with another player of your choice.' },
+  8: { name:'Countess',  sym:'💎', count:1, desc:'If you ever have this card with the King or a Prince, you must discard the Countess. The Countess has no other effect.' },
+  9: { name:'Princess',  sym:'💌', count:1, desc:'If you discard this card for any reason, you are immediately eliminated from the round.' },
+};
+
+// ── STATE ──
+let ws = null;
+let myIndex = -1;
+let isHost = false;
+let gameState = null;
+let selectedCard = null;
+let selectedTarget = null;
+let selectedGuess = null;
+let myTurn = false;
+
+// ── CONNECT ──
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connect, 2000); };
+  ws.onerror = () => setConn(false);
+  ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+}
+function setConn(ok) {
+  const d = document.getElementById('conn-dot'), l = document.getElementById('conn-label');
+  if (d) d.className = 'conn-dot ' + (ok ? 'ok' : 'err');
+  if (l) l.textContent = ok ? 'connected' : 'reconnecting…';
+}
+function send(obj) { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
+
+// ── MESSAGES ──
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'room_created':
+      myIndex = 0; isHost = true;
+      showScreen('s-lobby');
+      updateLobby([getName()], msg.code, true);
+      break;
+    case 'room_joined':
+      myIndex = msg.playerIndex; isHost = false;
+      showScreen('s-lobby');
+      break;
+    case 'lobby':
+      updateLobby(msg.players, msg.code, isHost);
+      break;
+    case 'game_starting':
+      showScreen('s-game');
+      toast(`Game starting with ${msg.players.join(', ')}!`);
+      break;
+    case 'game_state':
+      gameState = msg; myIndex = msg.myIndex;
+      renderGame();
+      break;
+    case 'your_turn':
+      myTurn = true;
+      selectedCard = null; selectedTarget = null; selectedGuess = null;
+      renderGame();
+      break;
+    case 'chancellor_choice':
+      renderGame();
+      showChancellorOverlay(msg.cards);
+      break;
+    case 'baron_reveal':
+      toast(`🗡️ ${msg.msg}`);
+      break;
+    case 'peek':
+      showPeekOverlay(msg.target, msg.card, msg.cardName);
+      break;
+    case 'round_over':
+      showRoundOver(msg); break;
+    case 'next_round':
+      document.getElementById('ov-round').classList.remove('show');
+      break;
+    case 'game_over':
+      showGameOver(msg); break;
+    case 'error':
+      toast('⚠ ' + msg.msg); break;
+    case 'player_left':
+      toast(`${msg.name} has left.`); break;
+  }
+}
+
+// ── LOBBY ──
+function updateLobby(players, code, amHost) {
+  document.getElementById('lobby-code').textContent = code;
+  document.getElementById('lobby-chips').innerHTML =
+    players.map((n, i) => `<div class="chip${i === myIndex ? ' me' : ''}">${n}${i === 0 ? ' ♔' : ''}</div>`).join('');
+  const startArea = document.getElementById('lobby-start-area');
+  const waitMsg = document.getElementById('lobby-wait-msg');
+  if (amHost) {
+    startArea.innerHTML = `<button class="btn" onclick="startGame()" ${players.length < 2 ? 'disabled' : ''}>Start Game</button>`;
+    waitMsg.textContent = players.length < 2 ? 'Waiting for at least one more player…' : `${players.length}/6 players ready`;
+  } else {
+    startArea.innerHTML = '';
+    waitMsg.textContent = 'Waiting for the host to start…';
+  }
+}
+function createRoom() {
+  const name = getName(); if (!name) return;
+  send({ type: 'create_room', name });
+}
+function showJoin() { document.getElementById('join-row').style.display = 'flex'; }
+function joinRoom() {
+  const name = getName(); if (!name) return;
+  const code = document.getElementById('inp-code').value.trim().toUpperCase();
+  if (!code) { toast('Enter a room code'); return; }
+  send({ type: 'join_room', name, code });
+}
+function startGame() { send({ type: 'start_game' }); }
+function getName() {
+  const n = document.getElementById('inp-name')?.value.trim();
+  if (!n) { toast('Enter your name first'); return null; }
+  return n;
+}
+
+// ── RENDER GAME ──
+function renderGame() {
+  if (!gameState) return;
+  const g = gameState;
+  const me = g.players[myIndex];
+  const isMyTurn = g.currentPlayer === myIndex && myTurn;
+
+  document.getElementById('g-round').textContent = `Round ${g.round}`;
+  document.getElementById('g-tokens').innerHTML = g.players.map((p, i) =>
+    `<span class="token-item${i === myIndex ? ' me' : ''}">${p.name}: ${p.tokens > 0 ? '♥'.repeat(p.tokens) : '—'} <span style="opacity:.4">(need ${g.tokensToWin})</span></span>`
+  ).join('');
+
+  document.getElementById('g-deck-count').textContent = `${g.deckCount} left`;
+
+  // Last discard
+  const topDisc = g.lastDiscard ?? null;
+  document.getElementById('g-discard').innerHTML = topDisc != null ? cardHTML(topDisc) : '';
+
+  // Opponents
+  const oppArea = document.getElementById('g-opponents');
+  oppArea.innerHTML = '';
+  g.players.forEach((p, i) => {
+    if (i === myIndex) return;
+    const z = document.createElement('div');
+    z.className = 'player-zone';
+    z.innerHTML = `
+      <div class="name-tag${i === g.currentPlayer ? ' active' : ''}${p.eliminated ? ' elim' : ''}">${p.name}</div>
+      <div style="display:flex;gap:3px">${Array(p.handCount).fill(0).map(() => smallCard()).join('')}</div>
+      ${p.protected ? '<div class="prot-tag">✦ protected</div>' : ''}
+      ${p.tokens > 0 ? `<div class="token-pips">${'♥'.repeat(p.tokens)}</div>` : ''}
+    `;
+    oppArea.appendChild(z);
+  });
+
+  // Hand
+  const handArea = document.getElementById('g-hand');
+  handArea.innerHTML = '';
+  if (me?.hand) {
+    me.hand.forEach((v, i) => {
+      if (v == null) return;
+      const playable = isMyTurn && canPlay(v);
+      const wrap = document.createElement('div');
+      wrap.innerHTML = cardHTML(v, i === selectedCard, isMyTurn && !playable);
+      wrap.firstChild.addEventListener('click', () => openZoom(v, i, isMyTurn, playable));
+      handArea.appendChild(wrap);
+    });
+  }
+
+  // Status
+  const sb = document.getElementById('g-status');
+  if (me?.eliminated) {
+    sb.textContent = 'You have been eliminated — watching the round unfold';
+    myTurn = false;
+  } else if (isMyTurn) {
+    sb.textContent = selectedCard !== null
+      ? `Playing ${CARDS[me.hand[selectedCard]]?.name} — ${needsTarget(me.hand[selectedCard]) ? 'choose a target below' : 'confirm play'}`
+      : 'Your turn — click a card to view & select it';
+  } else {
+    const cur = g.players[g.currentPlayer];
+    sb.textContent = cur ? `${cur.name}'s turn…` : '—';
+  }
+
+  renderActionPanel(isMyTurn, me);
+
+  const logEl = document.getElementById('g-log');
+  logEl.innerHTML = (g.log || []).map(l => `<div>${l}</div>`).join('');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function canPlay(v) {
+  if (!gameState) return false;
+  const hand = gameState.players[myIndex]?.hand ?? [];
+  // Countess rule: must play Countess(8) if holding King(7) or Prince(5)
+  if (hand.includes(8) && hand.some(x => x === 5 || x === 7)) return v === 8;
+  return true;
+}
+
+function needsTarget(v) { return [1,2,3,5,7].includes(v); }
+
+function renderActionPanel(isMyTurn, me) {
+  const panel = document.getElementById('g-action');
+  const body = document.querySelector('.game-body');
+  if (!isMyTurn || selectedCard === null || !me) {
+    panel.style.display = 'none';
+    body?.classList.remove('has-action');
+    return;
+  }
+  const val = me.hand[selectedCard];
+  if (val == null) { panel.style.display = 'none'; body?.classList.remove('has-action'); return; }
+  panel.style.display = 'flex';
+  body?.classList.add('has-action');
+
+  const targets = getValidTargets(val);
+  let html = `<div class="ap-title">Playing the ${CARDS[val].name}</div>`;
+
+  if (!needsTarget(val) || targets.length === 0) {
+    if (val === 6) {
+      html += `<div style="font-size:.75rem;font-style:italic;color:var(--parchment);opacity:.6;text-align:center">You will draw 2 cards and choose which to keep.</div>`;
+    }
+    html += `<button class="btn btn-sm" onclick="confirmPlay()">Confirm Play</button>`;
+  } else {
+    html += `<div class="ap-title" style="opacity:.5">Choose target:</div><div class="ap-row">`;
+    targets.forEach(ti => {
+      html += `<button class="tgt-btn${selectedTarget === ti ? ' sel' : ''}" onclick="selectTarget(${ti})">${gameState.players[ti].name}</button>`;
+    });
+    html += `</div>`;
+
+    if (val === 1 && selectedTarget !== null) {
+      html += `<div class="ap-title" style="opacity:.5;margin-top:.1rem">Guess their card (not Guard):</div><div class="ap-row">`;
+      for (let g = 0; g <= 9; g++) {
+        if (g === 1) continue; // can't guess Guard
+        html += `<button class="guess-btn${selectedGuess === g ? ' sel' : ''}" onclick="selectGuess(${g})">${g} ${CARDS[g].name}</button>`;
+      }
+      html += `</div>`;
+    }
+
+    const canConfirm = selectedTarget !== null && (val !== 1 || selectedGuess !== null);
+    if (canConfirm) html += `<button class="btn btn-sm" onclick="confirmPlay()">Confirm Play</button>`;
+  }
+
+  panel.innerHTML = html;
+}
+
+function getValidTargets(val) {
+  if (!gameState) return [];
+  const g = gameState;
+  const others = g.players.map((p,i) => ({p,i})).filter(({p,i}) => i !== myIndex && !p.eliminated && !p.protected);
+  if (val === 5) return g.players.map((p,i)=>({p,i})).filter(({p,i})=>!p.eliminated&&(!p.protected||i===myIndex)).map(x=>x.i);
+  if ([1,2,3,7].includes(val)) return others.map(x => x.i);
+  return [];
+}
+
+// ── INTERACTIONS ──
+function selectCard(i) {
+  selectedCard = (selectedCard === i) ? null : i;
+  selectedTarget = null; selectedGuess = null;
+  renderActionPanel(true, gameState?.players[myIndex]);
+  renderGame();
+}
+function selectTarget(i) { selectedTarget = i; selectedGuess = null; renderActionPanel(true, gameState?.players[myIndex]); }
+function selectGuess(g) { selectedGuess = g; renderActionPanel(true, gameState?.players[myIndex]); }
+
+function confirmPlay() {
+  if (selectedCard === null) return;
+  const val = gameState.players[myIndex].hand[selectedCard];
+  send({ type: 'play_card', card: val, target: selectedTarget, guess: selectedGuess });
+  myTurn = false;
+  selectedCard = null; selectedTarget = null; selectedGuess = null;
+  renderGame();
+}
+
+// ── CHANCELLOR OVERLAY ──
+function showChancellorOverlay(cards) {
+  const container = document.getElementById('chancellor-cards');
+  container.innerHTML = '';
+  cards.forEach(v => {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = cardHTML(v);
+    wrap.firstChild.addEventListener('click', () => keepChancellorCard(v));
+    container.appendChild(wrap);
+  });
+  document.getElementById('chancellor-overlay').classList.add('show');
+}
+
+function keepChancellorCard(v) {
+  document.getElementById('chancellor-overlay').classList.remove('show');
+  send({ type: 'chancellor_keep', card: v });
+  myTurn = false;
+}
+
+// ── ZOOM ──
+function openZoom(v, cardIdx, isMyTurn, playable) {
+  const c = CARDS[v];
+  document.getElementById('zoom-card-content').innerHTML = `
+    <div class="card-face">
+      <div class="cn">${v}</div>
+      <div class="cs">${c.sym}</div>
+      <div class="ct">${c.name}</div>
+      <div class="cd">${c.desc}</div>
+    </div>`;
+
+  const actions = document.getElementById('zoom-actions');
+  actions.innerHTML = '';
+
+  if (isMyTurn && cardIdx >= 0) {
+    if (playable) {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = selectedCard === cardIdx ? 'Deselect' : 'Select to Play';
+      btn.onclick = () => { selectCard(cardIdx); closeZoom(); };
+      actions.appendChild(btn);
+    } else {
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:.75rem;font-style:italic;color:var(--rose-light);opacity:.85;text-align:center;max-width:200px';
+      note.textContent = 'Must play the Countess while holding King or Prince';
+      actions.appendChild(note);
+    }
+  }
+
+  const close = document.createElement('button');
+  close.className = 'btn btn-rose btn-sm';
+  close.textContent = 'Close';
+  close.onclick = closeZoom;
+  actions.appendChild(close);
+
+  document.getElementById('card-zoom').classList.add('show');
+}
+function closeZoom() { document.getElementById('card-zoom').classList.remove('show'); }
+
+// ── PEEK OVERLAY ──
+function showPeekOverlay(targetName, cardVal, cardName) {
+  document.getElementById('peek-player-name').textContent = `${targetName} holds…`;
+  document.getElementById('peek-card-display').innerHTML = `
+    <div class="card-face">
+      <div class="cn">${cardVal}</div>
+      <div class="cs">${CARDS[cardVal].sym}</div>
+      <div class="ct">${cardName}</div>
+      <div class="cd">${CARDS[cardVal].desc}</div>
+    </div>`;
+  document.getElementById('ov-peek').classList.add('show');
+}
+
+// ── ROUND / GAME OVER ──
+function showRoundOver(msg) {
+  document.getElementById('ov-round-title').textContent = msg.isTie
+    ? `${msg.roundWinners.join(' & ')} Tie!`
+    : `${msg.winner} Wins the Round!`;
+  document.getElementById('ov-round-sub').textContent = msg.isTie
+    ? `Both players hold the same card and share the same discard total — each earns a token!`
+    : `First to ${msg.tokensToWin} tokens wins the game.`;
+  document.getElementById('ov-round-scores').innerHTML = msg.scores.map(s =>
+    `<div class="score-row${s.name === msg.winner ? ' win' : ''}">
+      <span>${s.name}</span><span>${s.tokens > 0 ? '♥'.repeat(s.tokens) + ' ' : ''}${s.tokens}</span>
+    </div>`).join('');
+  document.getElementById('ov-round-btn').innerHTML = isHost
+    ? `<button class="btn" onclick="sendNextRound()">Next Round</button>`
+    : `<div class="lobby-hint">Waiting for host to continue…</div>`;
+  document.getElementById('ov-round').classList.add('show');
+}
+function sendNextRound() {
+  document.getElementById('ov-round').classList.remove('show');
+  send({ type: 'next_round' });
+}
+function showGameOver(msg) {
+  document.getElementById('ov-game-title').textContent = `${msg.winner} Wins!`;
+  document.getElementById('ov-game-sub').textContent = `${msg.winner} has captured the heart of the Princess!`;
+  document.getElementById('ov-game-scores').innerHTML = [...msg.scores].sort((a,b)=>b.tokens-a.tokens).map(s =>
+    `<div class="score-row${s.name===msg.winner?' win':''}"><span>${s.name}${s.name===msg.winner?' ♥':''}</span><span>${s.tokens} token${s.tokens!==1?'s':''}</span></div>`
+  ).join('');
+  document.getElementById('ov-game').classList.add('show');
+}
+
+// ── CARD HTML ──
+function cardHTML(v, selected=false, disabled=false) {
+  const c = CARDS[v];
+  if (!c) return '';
+  return `<div class="card${selected?' selected':''}${disabled?' disabled':''}">
+    <div class="card-face">
+      <div class="cn">${v}</div>
+      <div class="cs">${c.sym}</div>
+      <div class="ct">${c.name}</div>
+      <div class="cd">${c.desc}</div>
+    </div>
+  </div>`;
+}
+function smallCard() {
+  return `<div class="card face-down no-click" style="width:44px;height:70px"></div>`;
+}
+
+// ── RULES ──
+function showRules() {
+  document.getElementById('rules-body').innerHTML = `
+    <div class="rules-section">
+      <h3>How to Play</h3>
+      <p style="font-size:.84rem;line-height:1.7;color:var(--parchment);opacity:.8;margin-bottom:.75rem">
+        Love Letter is a game of risk, deduction, and luck. Each round, one card is set aside face-down (unknown). Players each receive one card. On your turn, draw a card then play one of the two in your hand, following its effect. Try to be the last player standing, or hold the highest card when the deck runs out.
+      </p>
+      <p style="font-size:.84rem;line-height:1.7;color:var(--parchment);opacity:.8;margin-bottom:.75rem">
+        The winner of each round earns a token of affection. The first player to reach the required number of tokens wins the game.
+      </p>
+    </div>
+
+    <div class="rules-section">
+      <h3>Tokens to Win</h3>
+      <table class="tokens-table">
+        <tr><th>Players</th><th>Tokens Needed</th></tr>
+        <tr><td>2</td><td>6</td></tr>
+        <tr><td>3</td><td>5</td></tr>
+        <tr><td>4</td><td>4</td></tr>
+        <tr><td>5</td><td>3</td></tr>
+        <tr><td>6</td><td>3</td></tr>
+      </table>
+    </div>
+
+    <div class="rules-section">
+      <h3>The Cards <span style="font-size:.7rem;opacity:.4;font-weight:400">(21 total)</span></h3>
+      ${Object.entries(CARDS).map(([v, c]) => `
+        <div class="card-rule">
+          <div class="card-rule-num">${v}</div>
+          <div class="card-rule-body">
+            <span class="card-rule-name">${c.sym} ${c.name} <span class="card-rule-count">×${c.count}</span></span>
+            ${c.desc}
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="rules-section">
+      <h3>Key Rules</h3>
+      <div style="font-size:.82rem;line-height:1.8;color:var(--parchment);opacity:.8">
+        <p><strong style="color:var(--gold)">Countess (8):</strong> You <em>must</em> play the Countess if you also hold the King (7) or a Prince (5) in your hand.</p>
+        <p style="margin-top:.4rem"><strong style="color:var(--gold)">Tie-breaker:</strong> If multiple players tie for highest card at round end, compare the sum of all discarded cards. Highest total wins.</p>
+        <p style="margin-top:.4rem"><strong style="color:var(--gold)">Guard (1):</strong> You cannot guess Guard (1) — only cards 0 and 2–9 are valid guesses.</p>
+        <p style="margin-top:.4rem"><strong style="color:var(--gold)">Spy (0):</strong> The bonus token is only awarded if exactly one player played or discarded a Spy during the round, and that player survived.</p>
+        <p style="margin-top:.4rem"><strong style="color:var(--gold)">Chancellor (6):</strong> Draw 2 cards (you now hold 3). Keep 1, return the other 2 to the bottom of the deck in any order. If only 1 card remains in deck, draw that and return 1.</p>
+      </div>
+    </div>
+  `;
+  document.getElementById('ov-rules').classList.add('show');
+}
+
+// ── LEAVE ──
+function confirmLeave() {
+  document.getElementById('ov-leave').classList.add('show');
+}
+function doLeave() {
+  if (ws) ws.close();
+  location.reload();
+}
+
+// ── UTILS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+connect();
+</script>
+</body>
+</html>
