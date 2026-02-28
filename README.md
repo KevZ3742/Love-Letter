@@ -1,4 +1,4 @@
-# Love Letter (Online Implementation)
+# Love Letter
 
 An online implementation of the card game **Love Letter**, allowing
 players to play the classic deduction card game through a web interface.
