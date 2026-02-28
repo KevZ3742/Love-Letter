@@ -59,10 +59,3 @@ The server runs locally at:
 
 Using ngrok allows external players to connect to your local game
 server.
-
-## Future Improvements
-
--   Lobby system
--   Player authentication
--   Improved UI/UX
--   Game history and statistics
